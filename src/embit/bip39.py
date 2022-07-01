@@ -1,11 +1,17 @@
 # Mnemonic convertion to seed and to/from bytes
 import sys
-import hashlib
 
 if sys.implementation.name == "micropython":
     from micropython import const
+elif sys.implementation.name == "circuitpython":
+    const = lambda x: x
 else:
     from .util import const
+
+if sys.implementation.name == "circuitpython":
+    import adafruit_hashlib as hashlib
+else:
+    import hashlib
 
 from .wordlists.bip39 import WORDLIST
 

@@ -4,13 +4,17 @@ if sys.implementation.name == "micropython":
     import secp256k1
 else:
     from .util import secp256k1
-import hashlib
+
+if sys.implementation.name == "circuitpython":
+    import circuitpython_hmac as hmac
+else:
+    import hmac
+
 from . import ec
 from .base import EmbitKey, EmbitError, copy
 from .networks import NETWORKS
 from . import base58
 from . import hashes
-import hmac
 from binascii import hexlify
 import io
 

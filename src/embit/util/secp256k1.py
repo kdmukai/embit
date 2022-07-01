@@ -1,6 +1,9 @@
+import sys
 try:
-    # if it's micropython
-    from micropython import const
+    if sys.implementation.name == "micropython":
+        from micropython import const
+    elif sys.implementation.name == "circuitpython":
+        const = lambda x: x
     from secp256k1 import *
 except:
     # we are in python

@@ -3,8 +3,15 @@ Copy-paste from key.py in bitcoin test_framework.
 This is a fallback option if the library can't do ctypes bindings to secp256k1 library.
 """
 import random
-import hmac
-import hashlib
+import sys
+
+if sys.implementation.name == "circuitpython":
+    import adafruit_hashlib as hashlib
+    import circuitpython_hmac as hmac
+else:
+    import hashlib
+    import hmac
+
 
 def TaggedHash(tag, data):
     ss = hashlib.sha256(tag.encode('utf-8')).digest()

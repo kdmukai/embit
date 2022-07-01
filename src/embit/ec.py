@@ -53,10 +53,10 @@ class PublicKey(EmbitKey):
             b += stream.read(64)
         else:
             b += stream.read(32)
-        try:
-            point = secp256k1.ec_pubkey_parse(b)
-        except Exception as e:
-            raise ECError(str(e))
+        # try:
+        point = secp256k1.ec_pubkey_parse(b)
+        # except Exception as e:
+        #     raise ECError(str(e))
         compressed = b[0] != 0x04
         return cls(point, compressed)
 

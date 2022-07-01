@@ -4,11 +4,18 @@ from ..script import Script, Witness
 from .. import hashes
 from ..transaction import *
 from ..base import EmbitBase
-import hashlib
+
 if sys.implementation.name == "micropython":
     import secp256k1
 else:
     from ..util import secp256k1
+
+if sys.implementation.name == "circuitpython":
+    import adafruit_hashlib as hashlib
+else:
+    import hashlib
+
+
 
 class LSIGHASH(SIGHASH):
     # ALL and others are defined in SIGHASH

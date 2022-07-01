@@ -1,10 +1,15 @@
 import sys
 import io
-import hashlib
 from . import compact
 from .script import Script, Witness
 from . import hashes
 from .base import EmbitBase, EmbitError
+
+if sys.implementation.name == "circuitpython":
+    import adafruit_hashlib as hashlib
+else:
+    import hashlib
+
 
 class TransactionError(EmbitError):
     pass

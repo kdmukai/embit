@@ -5,10 +5,6 @@ from . import hashes
 from . import compact
 from .base import EmbitBase, EmbitError
 import sys
-if sys.implementation.name == "micropython":
-    import secp256k1
-else:
-    from .util import secp256k1
 
 SIGHASH_ALL = 1
 

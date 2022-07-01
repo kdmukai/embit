@@ -1,5 +1,10 @@
 import sys
-import hashlib
+
+if sys.implementation.name == "circuitpython":
+    import adafruit_hashlib as hashlib
+else:
+    import hashlib
+
 try:
     # this will work with micropython and python < 3.10
     # but will raise and exception if ripemd is not supported (python3.10, openssl 3)
