@@ -1,4 +1,5 @@
 import sys
+import time
 
 if sys.implementation.name == "micropython":
     import secp256k1
@@ -30,9 +31,13 @@ class HDKey(EmbitKey):
         fingerprint: bytes = b"\x00\x00\x00\x00",
         child_number: int = 0,
     ):
+        t_total = time.ticks_ms()
         self.key = key
+        t1 = time.ticks_ms()
         if len(key.serialize()) != 32 and len(key.serialize()) != 33:
             raise HDError("Invalid key. Should be private or compressed public")
+        print(f"HDKey: check serialized length {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
         if version is not None:
             self.version = version
         else:
@@ -46,10 +51,15 @@ class HDKey(EmbitKey):
         self._my_fingerprint = None
         self.child_number = child_number
         # check that base58[1:4] is "prv" or "pub"
+
+        t1 = time.ticks_ms()
         if self.is_private and self.to_base58()[1:4] != "prv":
             raise HDError("Invalid version")
         if not self.is_private and self.to_base58()[1:4] != "pub":
             raise HDError("Invalid version")
+        print(f"HDKey: check version {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
+        print(f"HDKey: TOTAL __init__() {time.ticks_diff(time.ticks_ms(), t_total)}ms")
 
     @classmethod
     def from_seed(cls, seed: bytes, version=NETWORKS["main"]["xprv"]):
@@ -142,6 +152,7 @@ class HDKey(EmbitKey):
     def to_public(self, version=None):
         if not self.is_private:
             raise HDError("Already public")
+        t1 = time.ticks_ms()
         if version is None:
             # detect network
             for net in NETWORKS:
@@ -150,10 +161,17 @@ class HDKey(EmbitKey):
                         # xprv -> xpub, zprv -> zpub etc
                         version = NETWORKS[net][k.replace("prv", "pub")]
                         break
+        print(f"to_public: get version {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
         if version is None:
             raise HDError("Can't find proper version. Provide it with version keyword")
+
+        t1 = time.ticks_ms()
+        pubkey = self.key.get_public_key()
+        print(f"to_public: get_public_key {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
         return self.__class__(
-            self.key.get_public_key(),
+            pubkey,
             self.chain_code,
             version=version,
             depth=self.depth,
@@ -182,7 +200,9 @@ class HDKey(EmbitKey):
         )
 
     def child(self, index: int, hardened: bool = False):
+        t_total = time.ticks_ms()
         """Derives a child HDKey"""
+        t1 = time.ticks_ms()
         if index > 0xFFFFFFFF:
             raise HDError("Index should be less then 2^32")
         if hardened and index < 0x80000000:
@@ -191,17 +211,32 @@ class HDKey(EmbitKey):
             hardened = True
         if hardened and not self.is_private:
             raise HDError("Can't do hardened with public key")
+        print(f"child: index, hardened {time.ticks_diff(time.ticks_ms(), t1)}ms")
 
         # we need pubkey for fingerprint anyways
         sec = self.sec()
+
+        t1 = time.ticks_ms()
         fingerprint = hashes.hash160(sec)[:4]
+        print(f"child: fingerprint {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
+        t1 = time.ticks_ms()
         if hardened:
             data = b"\x00" + self.key.serialize() + index.to_bytes(4, "big")
         else:
             data = sec + index.to_bytes(4, "big")
+        print(f"child: data {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
+        t1 = time.ticks_ms()
         raw = hmac.new(self.chain_code, data, digestmod='sha512').digest()
+        print(f"child: raw (hmac.digest()) {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
+        t1 = time.ticks_ms()
         secret = raw[:32]
         chain_code = raw[32:]
+        print(f"child: python slicing {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
+        t1 = time.ticks_ms()
         if self.is_private:
             secret = secp256k1.ec_privkey_add(secret, self.key.serialize())
             key = ec.PrivateKey(secret)
@@ -210,6 +245,10 @@ class HDKey(EmbitKey):
             point = copy(self.key._point)
             point = secp256k1.ec_pubkey_add(point, secret)
             key = ec.PublicKey(point)
+        print(f"child: key {time.ticks_diff(time.ticks_ms(), t1)}ms")
+
+        print(f"child: TOTAL (before return) {time.ticks_diff(time.ticks_ms(), t_total)}ms")
+
         return HDKey(
             key,
             chain_code,
@@ -223,10 +262,14 @@ class HDKey(EmbitKey):
         """ path: int array or a string starting with m/ """
         if isinstance(path, str):
             # string of the form m/44h/0'/ind
+            t1 = time.ticks_ms()
             path = parse_path(path)
+            print(f"derive: parse_path {time.ticks_diff(time.ticks_ms(), t1)}ms")
         child = self
         for idx in path:
+            t1 = time.ticks_ms()
             child = child.child(idx)
+            print(f"derive: child {idx} {time.ticks_diff(time.ticks_ms(), t1)}ms")            
         return child
 
     def sign(self, msg_hash: bytes) -> ec.Signature:

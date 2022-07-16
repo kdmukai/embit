@@ -1,4 +1,5 @@
 import sys
+import time
 
 if sys.implementation.name == "micropython":
     import secp256k1
@@ -62,8 +63,11 @@ class PublicKey(EmbitKey):
 
     def sec(self) -> bytes:
         """Sec representation of the key"""
+        t1 = time.ticks_ms()
         flag = secp256k1.EC_COMPRESSED if self.compressed else secp256k1.EC_UNCOMPRESSED
-        return secp256k1.ec_pubkey_serialize(self._point, flag)
+        s = secp256k1.ec_pubkey_serialize(self._point, flag)
+        print(f"PublicKey.sec(): {time.ticks_diff(time.ticks_ms(), t1)}ms")
+        return s
 
     def xonly(self) -> bytes:
         return self.sec()[1:33]
