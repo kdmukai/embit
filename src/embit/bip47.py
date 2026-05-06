@@ -251,11 +251,9 @@ def get_payment_code_from_notification_tx(tx: Transaction, recipient_root: HDKey
     # Unblind the payload using the reversible `blinding_function`.
     raw_unblinded_payload = blinding_function(b, A, utxo_outpoint=utxo_outpoint, payload=payload)
 
-    # Per spec: if the reconstructed x-coordinate isn't a valid secp256k1 point
-    # (or the sign byte is malformed), the payload must be ignored.
+    # Per BIP-47: if the updated x value is not a member of the secp256k1 group,
+    # the payment code is ignored.
     # Layout: 0x01 0x00 <sign:1> <x:32> <chain_code:32> <13 zeros>
-    if raw_unblinded_payload[2:3] not in (b"\x02", b"\x03"):
-        return None
     try:
         ec.PublicKey.parse(raw_unblinded_payload[2:35])
     except Exception:
